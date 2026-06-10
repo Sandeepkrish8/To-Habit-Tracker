@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import Stats from './pages/Stats';
 import Pomodoro from './pages/Pomodoro';
+import AICoach from './pages/AICoach';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/"         element={<Dashboard />} />
           <Route path="/stats"    element={<Stats />} />
           <Route path="/pomodoro" element={<Pomodoro />} />
+          <Route path="/coach"    element={<AICoach />} />
         </Routes>
       </main>
     </div>

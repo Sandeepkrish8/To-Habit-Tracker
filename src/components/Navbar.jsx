@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/',         label: 'Dashboard', icon: '🏠' },
   { to: '/stats',    label: 'Stats',     icon: '📊' },
   { to: '/pomodoro', label: 'Pomodoro',  icon: '⏱️' },
+  { to: '/coach',    label: 'AI Coach',  icon: '🤖' },
 ];
 
 export default function Navbar() {
