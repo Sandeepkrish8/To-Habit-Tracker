@@ -5,29 +5,20 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 import { toDateStr } from '../../utils/date';
-
-// ── localStorage loader ───────────────────────────────────────────────────────
-
-const loadTrees = () => {
-  try {
-    const raw = localStorage.getItem('habitTracker_forest');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-};
+import { loadJSON } from '../../utils/storage';
 
 /**
  * Builds a tree record. Runs in `prepare` so the reducer itself stays pure
  * (no uuid or Date calls inside the reducer).
- * Payload: { species: string, minutes: number, at?: number (timestamp) }
+ * Payload: { species: string, minutes: number, at?: number (timestamp), label?: string }
  */
-const prepareTree = (withered) => ({ species, minutes, at = Date.now() }) => ({
+const prepareTree = (withered) => ({ species, minutes, at = Date.now(), label = '' }) => ({
   payload: {
     id:        uuidv4(),
     species,
     minutes,
     withered,
+    label,     // what you were focusing on
     date:      toDateStr(new Date(at)), // local "YYYY-MM-DD" the session ended on
     plantedAt: new Date(at).toISOString(),
   },
@@ -38,7 +29,7 @@ const prepareTree = (withered) => ({ species, minutes, at = Date.now() }) => ({
 const forestSlice = createSlice({
   name: 'forest',
   initialState: {
-    trees: loadTrees(),
+    trees: loadJSON('habitTracker_forest', []),
   },
 
   reducers: {

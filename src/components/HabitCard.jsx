@@ -1,25 +1,67 @@
 // src/components/HabitCard.jsx
-// Displays a single habit with toggle, streak, best streak, and delete controls.
+// A single habit: press & hold to complete (with confetti, XP, and a water drop
+// that flies to your forest), tap to undo, click the card to open its calendar.
 
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { toggleHabit, deleteHabit } from '../features/habits/habitsSlice';
+import { toggleHabit, setHabitDone, deleteHabit } from '../features/habits/habitsSlice';
+import { XP } from '../features/achievements/progress';
+import { useToast } from '../context/toast';
+import useHoldToConfirm from '../hooks/useHoldToConfirm';
 import { todayStr as getTodayStr } from '../utils/date';
 
-export default function HabitCard({ habit }) {
-  const dispatch    = useDispatch();
-  const navigate    = useNavigate();
-  const [confirmDelete, setConfirmDelete] = useState(false);
+// Fixed confetti directions: [dx, dy, rotation] — fixed so renders stay pure
+const CONFETTI = [
+  [-70, -60, 220], [60, -70, -180], [-90, -10, 140], [90, -20, -120], [-40, -90, 300],
+  [30, -95, -260], [-100, 30, 90], [100, 25, -80], [0, -100, 180], [-55, 40, -60],
+  [55, 45, 60], [-20, -70, 120], [20, -60, -140], [75, -45, 200],
+];
+const CONFETTI_COLORS = ['#f472b6', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#fb923c'];
 
-  const todayStr    = getTodayStr();
-  const isDoneToday = habit.completedDates.includes(todayStr);
-  const totalDone   = habit.completedDates.length;
+const RING = 2 * Math.PI * 18;
+
+/** Sends a water drop from the button to the forest scene (if one is on screen) */
+const sendWaterDrop = (el, color) => {
+  const r = el.getBoundingClientRect();
+  window.dispatchEvent(new CustomEvent('habitflow:water', {
+    detail: { x: r.left + r.width / 2, y: r.top + r.height / 2, color },
+  }));
+};
+
+export default function HabitCard({ habit }) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [burst, setBurst] = useState(0); // increments to replay the celebration
+
+  const isDoneToday = habit.completedDates.includes(getTodayStr());
+  const totalDone = habit.completedDates.length;
+
+  // Undo restores an exact state for an exact day, so pressing it twice (or after midnight) is safe
+  const undoTo = (done, date) => () => dispatch(setHabitDone({ id: habit.id, date, done }));
+
+  const { progress, handlers } = useHoldToConfirm({
+    duration: 600,
+    onConfirm: () => {
+      const date = getTodayStr();
+      // Measure the button before re-rendering replaces it with the ✓ button
+      const button = document.getElementById(`hold-${habit.id}`);
+      if (button) sendWaterDrop(button, habit.color);
+      // Explicit "done", not a toggle — safe even if another tab already ticked it
+      dispatch(setHabitDone({ id: habit.id, date, done: true }));
+      setBurst((b) => b + 1);
+      navigator.vibrate?.(30);
+      toast.show({ icon: '✅', message: `Marked "${habit.name}" done`, action: { label: 'Undo', onClick: undoTo(false, date) } });
+    },
+  });
 
   // ── Handlers ────────────────────────────────────────────────
-  const handleToggle = (e) => {
-    e.stopPropagation(); // prevent card click → navigate
+  const handleUnmark = (e) => {
+    e.stopPropagation();
     dispatch(toggleHabit(habit.id));
+    toast.show({ icon: '↩️', message: `"${habit.name}" unmarked`, action: { label: 'Undo', onClick: undoTo(true, getTodayStr()) } });
   };
 
   const handleDeleteClick = (e) => {
@@ -37,21 +79,34 @@ export default function HabitCard({ habit }) {
     setConfirmDelete(false);
   };
 
-  const handleCardClick = () => {
-    navigate(`/habit/${habit.id}`); // → Habit Detail page
-  };
-
   // ── Render ───────────────────────────────────────────────────
   return (
     <div
-      onClick={handleCardClick}
-      className={`relative group flex items-center justify-between gap-4 p-4 rounded-2xl border 
+      onClick={() => navigate(`/calendar?habit=${habit.id}`)}
+      className={`relative group flex items-center justify-between gap-4 p-4 rounded-2xl border
         transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer
+        ${progress > 0 ? 'scale-[0.98] border-emerald-300 dark:border-emerald-700' : ''}
         ${isDoneToday
-          ? 'bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-700'
+          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
           : 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700'
         }`}
     >
+      {/* Confetti burst — key replays the animation on every completion */}
+      {burst > 0 && (
+        <div key={burst} className="pointer-events-none absolute right-10 top-1/2" aria-hidden="true">
+          {CONFETTI.map(([dx, dy, rot], i) => (
+            <span
+              key={i}
+              className="anim-confetti absolute w-2 h-1 rounded-sm"
+              style={{ backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length], '--dx': `${dx}px`, '--dy': `${dy}px`, '--rot': `${rot}deg` }}
+            />
+          ))}
+          <span className="anim-float-up absolute -top-10 -left-6 text-xs font-bold px-2 py-0.5 rounded-full bg-violet-600 text-white whitespace-nowrap">
+            +{XP.habit} XP
+          </span>
+        </div>
+      )}
+
       {/* ── Left: icon + name + streaks ── */}
       <div className="flex items-center gap-3 min-w-0">
 
@@ -81,16 +136,19 @@ export default function HabitCard({ habit }) {
           {/* Streak row */}
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
 
-            {/* Current streak */}
+            {/* Current streak — bumps when it grows */}
             <div className="flex items-center gap-1">
               <span className="text-xs">🔥</span>
-              <span className="text-xs font-medium text-orange-500 dark:text-orange-400">
-                {habit.streak ?? 0} day streak
+              <span
+                key={burst > 0 ? habit.streak : 'static'}
+                className={`text-xs font-medium text-orange-500 dark:text-orange-400 ${burst > 0 ? 'anim-bump' : ''}`}
+              >
+                {habit.streak} day streak
               </span>
             </div>
 
             {/* Best streak — only show if > current streak */}
-            {(habit.bestStreak ?? 0) > (habit.streak ?? 0) && (
+            {habit.bestStreak > habit.streak && (
               <div className="flex items-center gap-1">
                 <span className="text-xs">🏆</span>
                 <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -111,31 +169,53 @@ export default function HabitCard({ habit }) {
         </div>
       </div>
 
-      {/* ── Right: toggle + delete ── */}
+      {/* ── Right: hold-to-complete + delete ── */}
       <div className="flex items-center gap-2 flex-shrink-0">
 
-        {/* Toggle complete button */}
-        <button
-          onClick={handleToggle}
-          title={isDoneToday ? 'Mark undone' : 'Mark done'}
-          className={`w-9 h-9 rounded-full flex items-center justify-center text-lg 
-            font-bold border-2 transition-all duration-200
-            ${isDoneToday
-              ? 'bg-violet-500 border-violet-500 text-white scale-105 shadow-lg shadow-violet-200 dark:shadow-violet-900'
-              : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-300 dark:text-gray-600 hover:border-violet-400 hover:text-violet-400'
-            }`}
-        >
-          {isDoneToday ? '✓' : ''}
-        </button>
+        {isDoneToday ? (
+          <button
+            onClick={handleUnmark}
+            title="Tap to undo"
+            aria-label={`${habit.name} done today. Tap to undo`}
+            className="w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold
+              bg-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-950 transition-transform duration-200 hover:scale-105"
+          >
+            ✓
+          </button>
+        ) : (
+          <button
+            id={`hold-${habit.id}`}
+            data-undone-habit
+            {...handlers}
+            title="Press and hold to complete"
+            aria-label={`Hold to mark ${habit.name} done`}
+            className="relative w-11 h-11 rounded-full flex items-center justify-center touch-none select-none
+              text-gray-300 dark:text-gray-600 hover:text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+          >
+            {/* Progress ring fills while you hold */}
+            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 44 44" aria-hidden="true">
+              <circle cx="22" cy="22" r="18" fill="none" strokeWidth="3" className="stroke-gray-200 dark:stroke-gray-700" />
+              <circle
+                cx="22" cy="22" r="18" fill="none" strokeWidth="3" strokeLinecap="round"
+                className="stroke-emerald-500"
+                strokeDasharray={`${progress * RING} ${RING}`}
+              />
+            </svg>
+            <span className={`text-lg transition-transform ${progress > 0 ? 'scale-125 text-emerald-500' : ''}`}>
+              {progress > 0 ? '✓' : '👆'}
+            </span>
+          </button>
+        )}
 
         {/* Delete — confirm flow */}
         {!confirmDelete ? (
           <button
             onClick={handleDeleteClick}
             title="Delete habit"
-            className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-full flex 
-              items-center justify-center text-sm text-gray-400 dark:text-gray-500 
-              hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 
+            aria-label={`Delete ${habit.name}`}
+            className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-8 h-8 rounded-full flex
+              items-center justify-center text-sm text-gray-400 dark:text-gray-500
+              hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500
               transition-all duration-200"
           >
             🗑️
@@ -148,15 +228,15 @@ export default function HabitCard({ habit }) {
           >
             <button
               onClick={handleDeleteConfirm}
-              className="text-xs px-2 py-1 rounded-lg bg-red-500 text-white 
+              className="text-xs px-2 py-1 rounded-lg bg-red-500 text-white
                 hover:bg-red-600 transition-colors font-medium"
             >
               Delete
             </button>
             <button
               onClick={handleDeleteCancel}
-              className="text-xs px-2 py-1 rounded-lg border border-gray-200 
-                dark:border-gray-600 text-gray-500 dark:text-gray-400 
+              className="text-xs px-2 py-1 rounded-lg border border-gray-200
+                dark:border-gray-600 text-gray-500 dark:text-gray-400
                 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
@@ -164,17 +244,6 @@ export default function HabitCard({ habit }) {
           </div>
         )}
       </div>
-
-      {/* Done today overlay badge */}
-      {isDoneToday && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 
-          transition-opacity duration-200">
-          <span className="text-xs bg-violet-100 dark:bg-violet-900 text-violet-600 
-            dark:text-violet-300 px-2 py-0.5 rounded-full font-medium">
-            Done today ✓
-          </span>
-        </div>
-      )}
     </div>
   );
 }

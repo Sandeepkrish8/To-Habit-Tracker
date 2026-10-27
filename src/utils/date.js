@@ -22,3 +22,35 @@ export const daysAgoStr = (n) => {
   d.setDate(d.getDate() - n);
   return toDateStr(d);
 };
+
+/** Parses "YYYY-MM-DD" as local midnight (new Date("YYYY-MM-DD") would be UTC) */
+export const parseDateStr = (str) => new Date(`${str}T00:00:00`);
+
+/** Adds `n` days to a "YYYY-MM-DD" string */
+export const addDays = (str, n) => {
+  const d = parseDateStr(str);
+  d.setDate(d.getDate() + n);
+  return toDateStr(d);
+};
+
+/** Monday of the week containing `str`, as "YYYY-MM-DD" */
+export const weekStart = (str) => {
+  const d = parseDateStr(str);
+  const offset = (d.getDay() + 6) % 7; // Sunday → 6, Monday → 0
+  d.setDate(d.getDate() - offset);
+  return toDateStr(d);
+};
+
+/** "YYYY-MM" month key for a "YYYY-MM-DD" string */
+export const monthKey = (str) => str.slice(0, 7);
+
+/** Human label like "October 2026" for a "YYYY-MM" key */
+export const monthLabel = (key) =>
+  parseDateStr(`${key}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+/** Moves a "YYYY-MM" key by `n` months */
+export const addMonths = (key, n) => {
+  const d = parseDateStr(`${key}-01`);
+  d.setMonth(d.getMonth() + n);
+  return toDateStr(d).slice(0, 7);
+};

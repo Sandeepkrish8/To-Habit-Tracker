@@ -13,7 +13,7 @@ const LEAVES = [
 ];
 
 export default function PlantCelebration({ tree, totalTrees, onClose, onStartBreak }) {
-  const { species, minutes } = tree;
+  const { species, minutes, label } = tree;
   const [, mid, light] = SPECIES[species].leaves;
 
   return (
@@ -52,10 +52,12 @@ export default function PlantCelebration({ tree, totalTrees, onClose, onStartBre
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           +{minutes} min of focus · {totalTrees} {totalTrees === 1 ? 'tree' : 'trees'} in your forest
         </p>
+        {label && <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">📖 {label}</p>}
 
         <div className="mt-6 flex gap-3">
           <Link
             to="/forest"
+            onClick={onClose}
             className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
           >
             🌳 View forest

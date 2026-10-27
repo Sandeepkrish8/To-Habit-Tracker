@@ -150,7 +150,8 @@ export default function Forest() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Forest 🌳</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            Every tree is a focus session you finished.
+            Every tree is a focus session you finished.{' '}
+            <Link to="/wrapped" className="text-violet-600 dark:text-violet-400 font-medium hover:underline">🎁 See your month Wrapped →</Link>
           </p>
         </div>
 
