@@ -4,7 +4,7 @@
 import { useSelector } from 'react-redux';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, Legend
+  Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 import { selectWeeklyData, selectHabits } from '../features/habits/habitsSlice';
 

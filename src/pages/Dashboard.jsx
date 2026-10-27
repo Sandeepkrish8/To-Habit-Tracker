@@ -1,21 +1,30 @@
 // src/pages/Dashboard.jsx
-// Main page — add habits, view daily habit list, track completion progress.
+// Home — the living forest, today's progress, and your habit list.
 
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addHabit, selectHabits, selectTodayCount } from '../features/habits/habitsSlice';
+import { addHabit, selectHabits, selectTodayCount, selectConsistency } from '../features/habits/habitsSlice';
+import { weatherOf } from '../features/habits/weather';
 import HabitCard from '../components/HabitCard';
+import ForestScene from '../components/ForestScene';
 
 // Preset icons for habit creation
 const ICONS = ['🎯', '💪', '📚', '🧘', '🏃', '💧', '🥗', '😴', '🎨', '🎵', '💻', '✍️'];
 const COLORS = ['#7c3aed', '#db2777', '#059669', '#d97706', '#2563eb', '#dc2626', '#0891b2', '#65a30d'];
 
-const today = () => new Date().toISOString().split('T')[0];
-
 export default function Dashboard() {
   const dispatch = useDispatch();
   const habits = useSelector(selectHabits);
   const todayCount = useSelector(selectTodayCount);
+  const consistency = useSelector(selectConsistency);
+  const rainy = weatherOf(consistency, habits.length > 0) === 'rainy';
+
+  /** Scroll to the first unfinished habit and focus its hold button */
+  const focusFirstUndone = () => {
+    const button = document.querySelector('[data-undone-habit]');
+    button?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    button?.focus({ preventScroll: true });
+  };
 
   // Form state
   const [name, setName] = useState('');
@@ -57,6 +66,24 @@ export default function Dashboard() {
         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{todayLabel}</p>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">My Habits</h1>
       </div>
+
+      <ForestScene />
+
+      {/* Gentle nudge when it's been raining — encouraging, never guilt-tripping */}
+      {rainy && (
+        <div className="anim-fade-up rounded-2xl p-4 bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/40 border border-sky-100 dark:border-sky-900 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <p className="font-semibold text-gray-900 dark:text-white">Your forest misses you 🌱</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Finish just one habit to bring the sun back. Small wins count.</p>
+          </div>
+          <button
+            onClick={focusFirstUndone}
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
+          >
+            ☀️ Do one habit now
+          </button>
+        </div>
+      )}
 
       {/* Progress summary card */}
       {habits.length > 0 && (
@@ -169,6 +196,9 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-3">
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+            Press and hold 👆 to complete · tap a habit to see its calendar
+          </p>
           {habits.map((habit) => (
             <HabitCard key={habit.id} habit={habit} />
           ))}

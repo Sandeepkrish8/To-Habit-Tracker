@@ -2,6 +2,8 @@
 // Wrapper around the Anthropic Claude API for the AI Coach feature.
 // All calls go directly from the browser using the special direct-browser header.
 
+import { todayStr } from '../utils/date';
+
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL          = 'claude-sonnet-4-20250514';
 const MAX_TOKENS     = 1024;
@@ -63,7 +65,7 @@ function buildHabitSummary(habits) {
     return 'The user has no habits tracked yet.';
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
 
   return habits
     .map((h) => {
