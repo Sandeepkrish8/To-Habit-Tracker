@@ -12,7 +12,6 @@ const NAV_LINKS = [
   { to: '/forest',   label: 'Forest',   icon: '🌳' },
   { to: '/progress', label: 'Progress', icon: '🏅' },
   { to: '/insights', label: 'Insights', icon: '✨' },
-  { to: '/coach',    label: 'Coach',    icon: '🤖' },
 ];
 
 export default function Navbar() {

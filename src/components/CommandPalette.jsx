@@ -24,7 +24,6 @@ const PAGES = [
   { to: '/insights', icon: '✨', title: 'Evening check-in & insights' },
   { to: '/wrapped',  icon: '🎁', title: 'Monthly Wrapped' },
   { to: '/stats',    icon: '📊', title: 'Weekly stats' },
-  { to: '/coach',    icon: '🤖', title: 'AI Coach' },
   { to: '/newtab',   icon: '🗂️', title: 'New tab view' },
 ];
 

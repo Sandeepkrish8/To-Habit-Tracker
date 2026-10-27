@@ -73,10 +73,9 @@ src/
 │   └── …
 ├── hooks/                      # useHoldToConfirm, useCountUp, useNow, useDarkMode
 ├── pages/                      # Dashboard, Calendar, Pomodoro, Forest, Progress,
-│                               # Insights, Wrapped, NewTab, Stats, AICoach
+│                               # Insights, Wrapped, NewTab, Stats
 ├── services/
-│   ├── ambientAudio.js         # Web Audio sound generator
-│   └── claudeAPI.js            # AI Coach
+│   └── ambientAudio.js         # Web Audio sound generator
 └── utils/                      # date, storage, fuzzy search
 extension/
 └── manifest.json               # Chrome extension (Manifest V3)
@@ -111,8 +110,6 @@ npm run build:extension
 3. Open a new tab 🌳
 
 > The extension keeps its own copy of your data (each site/extension gets its own browser storage), so habits you add on the website won't appear in the extension and vice versa.
->
-> Keep `.env` out of extension builds you share: `VITE_` variables (like the AI Coach key) are bundled into the JavaScript.
 
 ---
 
@@ -129,7 +126,6 @@ npm run build:extension
 | Wrapped | `/wrapped` | Monthly story cards to save or share |
 | Statistics | `/stats` | Weekly bar chart + per-habit completion |
 | New tab | `/newtab` | Clock, habits, focus and forest — the extension's new tab |
-| AI Coach | `/coach` | Chat with an AI habit coach |
 
 ---
 

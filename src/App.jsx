@@ -16,7 +16,6 @@ import Progress from './pages/Progress';
 import Insights from './pages/Insights';
 import Wrapped from './pages/Wrapped';
 import NewTab from './pages/NewTab';
-import AICoach from './pages/AICoach';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -41,7 +40,6 @@ export default function App() {
               <Route path="/insights" element={<Insights />} />
               <Route path="/wrapped"  element={<Wrapped />} />
               <Route path="/newtab"   element={<NewTab />} />
-              <Route path="/coach"    element={<AICoach />} />
             </Routes>
           </main>
         </div>
