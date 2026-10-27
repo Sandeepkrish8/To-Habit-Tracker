@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/components/ToastProvider.jsx"
+        ],
+        "createdAt": "2026-10-27T09:25:15.365Z",
+        "reason": "brand: violet is HabitFlow's identity color since the initial commit (logo text-violet-600, Dashboard progress card from-violet-500 to-purple-600); these gradients extend it"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/pages/Progress.jsx"
+        ],
+        "createdAt": "2026-10-27T09:25:15.380Z",
+        "reason": "brand: violet is HabitFlow's identity color since the initial commit (logo text-violet-600, Dashboard progress card from-violet-500 to-purple-600); these gradients extend it"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/pages/Insights.jsx"
+        ],
+        "createdAt": "2026-10-27T09:25:15.394Z",
+        "reason": "brand: violet is HabitFlow's identity color since the initial commit (logo text-violet-600, Dashboard progress card from-violet-500 to-purple-600); these gradients extend it"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/pages/Wrapped.jsx"
+        ],
+        "createdAt": "2026-10-27T09:25:15.408Z",
+        "reason": "brand: violet is HabitFlow's identity color since the initial commit (logo text-violet-600, Dashboard progress card from-violet-500 to-purple-600); these gradients extend it"
+      }
+    ]
+  }
+}
