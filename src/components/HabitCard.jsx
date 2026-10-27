@@ -5,9 +5,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toggleHabit, deleteHabit } from '../features/habits/habitsSlice';
-
-// Computed once per render — avoids repeated Date() calls
-const getTodayStr = () => new Date().toISOString().split('T')[0];
+import { todayStr as getTodayStr } from '../utils/date';
 
 export default function HabitCard({ habit }) {
   const dispatch    = useDispatch();

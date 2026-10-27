@@ -3,17 +3,12 @@
 
 import { createSlice } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
+import { toDateStr, todayStr, daysAgoStr } from '../../utils/date';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Returns a date as "YYYY-MM-DD" string */
-const toDateStr = (date) => date.toISOString().split('T')[0];
-
-/** Returns today as "YYYY-MM-DD" */
-const todayStr = () => toDateStr(new Date());
-
 /** Returns yesterday as "YYYY-MM-DD" */
-const yesterdayStr = () => toDateStr(new Date(Date.now() - 86_400_000));
+const yesterdayStr = () => daysAgoStr(1);
 
 /**
  * Calculate current streak for a habit.
@@ -67,7 +62,7 @@ const calcBestStreak = (completedDates) => {
   for (let i = 1; i < sorted.length; i++) {
     const prev = new Date(sorted[i - 1] + 'T00:00:00');
     const curr = new Date(sorted[i]  + 'T00:00:00');
-    const diffDays = (curr - prev) / 86_400_000;
+    const diffDays = Math.round((curr - prev) / 86_400_000);
 
     if (diffDays === 1) {
       // Consecutive day

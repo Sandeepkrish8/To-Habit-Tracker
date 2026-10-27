@@ -10,8 +10,6 @@ import HabitCard from '../components/HabitCard';
 const ICONS = ['🎯', '💪', '📚', '🧘', '🏃', '💧', '🥗', '😴', '🎨', '🎵', '💻', '✍️'];
 const COLORS = ['#7c3aed', '#db2777', '#059669', '#d97706', '#2563eb', '#dc2626', '#0891b2', '#65a30d'];
 
-const today = () => new Date().toISOString().split('T')[0];
-
 export default function Dashboard() {
   const dispatch = useDispatch();
   const habits = useSelector(selectHabits);

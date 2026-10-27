@@ -10,6 +10,7 @@ import {
   selectTopStreak,
 } from '../features/habits/habitsSlice';
 import { chatWithCoach, getWeeklyPlan } from '../services/claudeAPI';
+import { todayStr } from '../utils/date';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ function MessageBubble({ message }) {
 
 /** Horizontal scrollable habit context bar */
 function HabitContextBar({ habits }) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
 
   if (habits.length === 0) return null;
 

@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react';
 const NAV_LINKS = [
   { to: '/',         label: 'Dashboard', icon: '🏠' },
   { to: '/stats',    label: 'Stats',     icon: '📊' },
-  { to: '/pomodoro', label: 'Pomodoro',  icon: '⏱️' },
+  { to: '/pomodoro', label: 'Focus',     icon: '⏱️' },
+  { to: '/forest',   label: 'Forest',    icon: '🌳' },
   { to: '/coach',    label: 'AI Coach',  icon: '🤖' },
 ];
 
@@ -30,7 +31,7 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 flex items-center justify-between h-16">
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-violet-600 dark:text-violet-400 tracking-tight">
@@ -39,14 +40,14 @@ export default function Navbar() {
         </Link>
 
         {/* Nav links */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-0.5 sm:gap-2">
           {NAV_LINKS.map(({ to, label, icon }) => {
             const active = pathname === to;
             return (
               <Link
                 key={to}
                 to={to}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
                   ${active
                     ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300'
                     : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'
@@ -62,7 +63,7 @@ export default function Navbar() {
           <button
             onClick={() => setDark((d) => !d)}
             title="Toggle dark mode"
-            className="ml-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 text-lg"
+            className="ml-1 sm:ml-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 text-lg"
           >
             {dark ? '☀️' : '🌙'}
           </button>

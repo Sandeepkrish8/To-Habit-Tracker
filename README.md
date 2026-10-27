@@ -10,7 +10,10 @@ A fully functional **Habit Tracker** web application built with **React + Vite**
 
 - ✅ **Add, delete & toggle habits** — mark habits done/undone each day
 - 🔥 **Streak counter** — consecutive days completed, auto-calculated
-- ⏱️ **Pomodoro Timer** — 25 min work / 5 min break with an animated SVG ring, audio beep, and session counter
+- 🌳 **Focus Forest** — every finished focus session (25 / 45 / 60 min) plants a tree; give up halfway and it withers
+- 🌱 **Growing tree timer** — watch your tree grow inside the countdown ring; the timer survives page switches and reloads
+- 🔓 **Unlockable species** — Oak → Pine → Cherry Blossom → Maple → Golden Tree as your forest grows
+- 🗓️ **Forest views** — browse trees by day, week, month, year, or all time, plus a year-at-a-glance heatmap
 - 📊 **Weekly Stats** — stacked bar chart (Recharts) of daily completions + habit leaderboard
 - 🌙 **Dark mode toggle** — persisted in localStorage
 - 💾 **localStorage persistence** — all data survives page refreshes
@@ -39,15 +42,23 @@ src/
 ├── app/
 │   └── store.js              # Redux store + localStorage middleware
 ├── features/
-│   └── habits/
-│       └── habitsSlice.js    # Redux slice (actions, reducers, selectors)
+│   ├── habits/
+│   │   └── habitsSlice.js    # Redux slice (actions, reducers, selectors)
+│   └── forest/
+│       ├── forestSlice.js    # Planted / withered trees from focus sessions
+│       └── species.js        # Tree species + unlock thresholds
 ├── components/
 │   ├── Navbar.jsx            # Navigation + dark mode toggle
-│   └── HabitCard.jsx         # Single habit card (toggle, streak, delete)
+│   ├── HabitCard.jsx         # Single habit card (toggle, streak, delete)
+│   ├── Tree.jsx              # Animated SVG tree (grows, sways, withers)
+│   └── PlantCelebration.jsx  # "Tree planted!" celebration overlay
 ├── pages/
 │   ├── Dashboard.jsx         # Main page — add & manage habits
 │   ├── Stats.jsx             # Weekly bar chart + habit breakdown
-│   └── Pomodoro.jsx          # Focus timer with animated ring
+│   ├── Pomodoro.jsx          # Focus timer that grows a tree
+│   └── Forest.jsx            # Your forest by day/week/month/year + heatmap
+├── utils/
+│   └── date.js               # Local-time "YYYY-MM-DD" helpers
 ├── App.jsx                   # Root layout + React Router routes
 ├── main.jsx                  # Entry point (Provider + BrowserRouter)
 └── index.css                 # Tailwind imports + dark mode variant
@@ -79,7 +90,8 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 |---|---|---|
 | Dashboard | `/` | Add habits, mark done, view daily progress |
 | Statistics | `/stats` | Weekly bar chart + per-habit completion |
-| Pomodoro | `/pomodoro` | Focus timer with 25/5 min cycles |
+| Focus | `/pomodoro` | Focus timer that grows a tree (25/45/60 min) |
+| Forest | `/forest` | All your trees by day/week/month/year + heatmap |
 
 ---
 
