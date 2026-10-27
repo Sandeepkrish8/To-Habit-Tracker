@@ -14,9 +14,15 @@ A habit tracker that feels alive: your habits water a forest, focus sessions pla
 - 📅 **Calendar & backfill** — month view with a dot per habit, 🌸 perfect days, tap any past day to fix it, swipe to change month, 6-month heatmap
 - 🧊 **Streak freezes** — protect your streaks on a sick day; earn one for every 7 perfect days
 - 🔥 **Streaks** — always correct, calculated fresh from your history
+- 🕯️ **Evolving streak flame** — grows and changes color at 7 / 30 / 100 days (SVG path morphing), turns cold when a streak breaks; milestones get a full-screen fireworks ceremony
+- 🪄 **Morphing cards** — tap a habit and its card morphs into a detail page (shared `layoutId`); swipe down to go back; numbers roll like an odometer
+- ⠿ **Drag to reorder** — reorder habits with spring physics (Framer Motion `Reorder`)
+- 🌙 **Swipe evening review** — after 6 PM, swipe right for done, left for skipped
 
 **Focus**
 - 🌳 **Focus Forest** — every finished focus session (25 / 45 / 60 min) plants a tree; give up halfway and it withers
+- 🌲 **3D growing tree** — a unique procedural tree (seeded recursion) grows branch by branch while you focus, blooms in the last 5 minutes, and withers if you give up
+- 🏝️ **3D forest island** — spin your whole forest in 3D: day/night lighting, fireflies, rain, tap a tree to fly to it
 - 🎧 **Focus room** — fullscreen mode, ambient sounds generated live with the Web Audio API (rain, birds, café, fire), a label for what you're studying
 - ⧉ **Mini timer** — a floating Picture-in-Picture timer that stays on top of other apps
 - 🔒 **Strict mode** — leaving the tab pauses your tree
@@ -44,6 +50,8 @@ A habit tracker that feels alive: your habits water a forest, focus sessions pla
 | React Router DOM v7 | Client-side routing (Browser router on the web, Hash router in the extension) |
 | Tailwind CSS v4 | Utility-first styling |
 | Recharts | Charts & data visualization |
+| three.js + React Three Fiber | 3D island and growing tree (lazy-loaded) |
+| Framer Motion | Gestures, layout morphs, reorder, springs |
 | html-to-image | Exporting Wrapped cards as PNG |
 | Web APIs | Web Audio, Fullscreen, Page Visibility, Document Picture-in-Picture, Web Share, Vibration, Web Animations |
 | localStorage | Data persistence |
@@ -63,6 +71,11 @@ src/
 │   ├── journal/                # Evening check-ins + on-device insights
 │   └── achievements/           # XP, levels, badges, weekly challenge
 ├── components/
+│   ├── three/                  # 3D (React Three Fiber): ForestIsland, GrowingTree3D, OrbitRig
+│   ├── StreakFlame.jsx         # Evolving, flickering streak flame
+│   ├── MilestoneWatcher.jsx    # 7 / 30 / 100-day celebrations
+│   ├── EveningReview.jsx       # Swipe card review
+│   ├── Odometer.jsx            # Rolling numbers
 │   ├── ForestScene.jsx         # Living sky/weather scene + flying water drops
 │   ├── HabitCard.jsx           # Hold-to-complete habit card
 │   ├── FocusEngine.jsx         # Global timer, sounds, strict mode, PiP mini timer
@@ -117,10 +130,11 @@ npm run build:extension
 
 | Page | Route | Description |
 |---|---|---|
-| Home | `/` | Living forest, today's progress, hold-to-complete habits |
+| Home | `/` | Living forest, today's progress, hold-to-complete habits, drag to reorder |
+| Habit | `/habit/:id` | One habit up close — streak flame, stats, last 35 days |
 | Calendar | `/calendar` | Month view, backfill past days, streak freezes, 6-month heatmap |
 | Focus | `/pomodoro` | Timer that grows a tree, focus room, sounds, mini timer |
-| Forest | `/forest` | All your trees by day/week/month/year + heatmap |
+| Forest | `/forest` | All your trees in 2D or 3D, by day/week/month/year + heatmap |
 | Progress | `/progress` | Level, XP, badges, weekly challenge |
 | Insights | `/insights` | Evening check-in + patterns in your data |
 | Wrapped | `/wrapped` | Monthly story cards to save or share |

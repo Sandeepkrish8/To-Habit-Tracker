@@ -39,6 +39,8 @@ const DEFAULT_TIMER = {
   strict:       false,   // leaving the tab pauses the tree
   sound:        null,    // ambient sound id
   volume:       0.5,
+  seed:         1,       // shapes this session's 3D tree — new for every session
+  tree3d:       true,    // show the 3D growing tree (falls back to 2D without WebGL)
 };
 
 const loadTimer = () => {
@@ -54,6 +56,9 @@ const resetTo = (state, mode) => {
 };
 
 const withNow = (payload) => ({ payload: { ...payload, now: Date.now() } });
+
+/** A fresh seed from the start time (kept positive and inside 32-bit range) */
+const seedFrom = (now) => (now % 2147483646) + 1;
 
 const focusSlice = createSlice({
   name: 'focus',
@@ -72,11 +77,17 @@ const focusSlice = createSlice({
     setStrict(state, action)   { state.strict = action.payload; },
     setSound(state, action)    { state.sound = action.payload; },
     setVolume(state, action)   { state.volume = action.payload; },
+    setTree3d(state, action)   { state.tree3d = action.payload; },
 
     /** Start or resume the current session */
     start: {
       reducer(state, action) {
-        if (state.endAt === null) state.endAt = action.payload.now + state.remaining * 1000;
+        if (state.endAt !== null) return;
+        // A brand-new focus session (not a resume) gets a new tree shape
+        if (state.mode === 'work' && state.remaining === durationOf('work', state.focusMinutes)) {
+          state.seed = seedFrom(action.payload.now);
+        }
+        state.endAt = action.payload.now + state.remaining * 1000;
       },
       prepare: () => withNow({}),
     },
@@ -108,6 +119,7 @@ const focusSlice = createSlice({
         state.focusMinutes = action.payload.minutes;
         state.remaining = action.payload.minutes * 60;
         state.endAt = action.payload.now + state.remaining * 1000;
+        state.seed = seedFrom(action.payload.now);
       },
       prepare: (minutes) => withNow({ minutes }),
     },
@@ -115,7 +127,7 @@ const focusSlice = createSlice({
 });
 
 export const {
-  setMode, setFocusMinutes, setSpecies, setLabel, setStrict, setSound, setVolume,
+  setMode, setFocusMinutes, setSpecies, setLabel, setStrict, setSound, setVolume, setTree3d,
   start, pause, reset, completeSession, startFocus,
 } = focusSlice.actions;
 

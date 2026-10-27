@@ -1,10 +1,13 @@
 // src/components/HabitCard.jsx
 // A single habit: press & hold to complete (with confetti, XP, and a water drop
-// that flies to your forest), tap to undo, click the card to open its calendar.
+// that flies to your forest), tap to undo, drag ⠿ to reorder, and click the card
+// to open its detail page — the card morphs into it (shared `layoutId`).
 
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import StreakFlame from './StreakFlame';
 import { toggleHabit, setHabitDone, deleteHabit } from '../features/habits/habitsSlice';
 import { XP } from '../features/achievements/progress';
 import { useToast } from '../context/toast';
@@ -29,7 +32,7 @@ const sendWaterDrop = (el, color) => {
   }));
 };
 
-export default function HabitCard({ habit }) {
+export default function HabitCard({ habit, onDragHandle }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const toast = useToast();
@@ -81,11 +84,15 @@ export default function HabitCard({ habit }) {
 
   // ── Render ───────────────────────────────────────────────────
   return (
-    <div
-      onClick={() => navigate(`/calendar?habit=${habit.id}`)}
-      className={`relative group flex items-center justify-between gap-4 p-4 rounded-2xl border
-        transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer
-        ${progress > 0 ? 'scale-[0.98] border-emerald-300 dark:border-emerald-700' : ''}
+    <motion.div
+      layoutId={`habit-${habit.id}`}
+      onClick={() => navigate(`/habit/${habit.id}`)}
+      // Framer owns `transform`, so the hold "press in" is animated here, not with a CSS class
+      animate={{ scale: progress > 0 ? 0.98 : 1 }}
+      style={{ borderRadius: 16 }} // in style so the corners stay round while morphing
+      className={`relative group flex items-center justify-between gap-3 sm:gap-4 p-4 border
+        transition-[colors,box-shadow] duration-300 shadow-sm hover:shadow-md cursor-pointer
+        ${progress > 0 ? 'border-emerald-300 dark:border-emerald-700' : ''}
         ${isDoneToday
           ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
           : 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700'
@@ -107,38 +114,54 @@ export default function HabitCard({ habit }) {
         </div>
       )}
 
-      {/* ── Left: icon + name + streaks ── */}
-      <div className="flex items-center gap-3 min-w-0">
+      {/* ── Left: drag handle + icon + name + streaks ── */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
 
-        {/* Colored icon bubble */}
-        <div
-          className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl shadow-inner"
+        {/* Drag handle — only this starts a reorder, so holding the card still works */}
+        {onDragHandle && (
+          <button
+            onPointerDown={(e) => { e.stopPropagation(); onDragHandle(e); }}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Drag to reorder ${habit.name}`}
+            title="Drag to reorder"
+            className="touch-none select-none -ml-2 px-1 py-2 text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-grab active:cursor-grabbing"
+          >
+            ⠿
+          </button>
+        )}
+
+        {/* Colored icon bubble — morphs into the detail page's big icon */}
+        <motion.div
+          layoutId={`habit-icon-${habit.id}`}
+          className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-xl shadow-inner"
           style={{
+            borderRadius: 12,
             backgroundColor: habit.color + '22',
             border: `2px solid ${habit.color}44`,
           }}
         >
           {habit.icon}
-        </div>
+        </motion.div>
 
         {/* Name + stats */}
         <div className="min-w-0">
-          <p
-            className={`font-semibold text-sm sm:text-base truncate transition-all duration-200
+          <motion.p
+            layoutId={`habit-name-${habit.id}`}
+            className={`font-semibold text-sm sm:text-base truncate transition-colors duration-200
               ${isDoneToday
                 ? 'line-through text-gray-400 dark:text-gray-500'
                 : 'text-gray-800 dark:text-gray-100'
               }`}
           >
             {habit.name}
-          </p>
+          </motion.p>
 
           {/* Streak row */}
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
 
-            {/* Current streak — bumps when it grows */}
+            {/* Current streak — a living flame that evolves with the streak */}
             <div className="flex items-center gap-1">
-              <span className="text-xs">🔥</span>
+              <StreakFlame streak={habit.streak} best={habit.bestStreak} size={13} />
               <span
                 key={burst > 0 ? habit.streak : 'static'}
                 className={`text-xs font-medium text-orange-500 dark:text-orange-400 ${burst > 0 ? 'anim-bump' : ''}`}
@@ -244,6 +267,6 @@ export default function HabitCard({ habit }) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

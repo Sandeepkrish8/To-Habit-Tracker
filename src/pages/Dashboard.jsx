@@ -1,16 +1,42 @@
 // src/pages/Dashboard.jsx
 // Home — the living forest, today's progress, and your habit list.
+// Habits can be dragged into a new order (Framer Motion's Reorder), and after
+// 6 PM a "Review your day" card opens the swipe review.
 
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addHabit, selectHabits, selectTodayCount, selectConsistency } from '../features/habits/habitsSlice';
+import { useSearchParams } from 'react-router-dom';
+import { AnimatePresence, Reorder, useDragControls } from 'framer-motion';
+import { addHabit, selectHabits, selectTodayCount, selectConsistency, setHabitOrder } from '../features/habits/habitsSlice';
 import { weatherOf } from '../features/habits/weather';
 import HabitCard from '../components/HabitCard';
 import ForestScene from '../components/ForestScene';
+import EveningReview from '../components/EveningReview';
+import StreakFlame from '../components/StreakFlame';
+import Odometer from '../components/Odometer';
+import useNow from '../hooks/useNow';
+import { todayStr } from '../utils/date';
 
 // Preset icons for habit creation
 const ICONS = ['🎯', '💪', '📚', '🧘', '🏃', '💧', '🥗', '😴', '🎨', '🎵', '💻', '✍️'];
 const COLORS = ['#7c3aed', '#db2777', '#059669', '#d97706', '#2563eb', '#dc2626', '#0891b2', '#65a30d'];
+
+/** One draggable row. Only the ⠿ handle starts a drag, so press-and-hold still completes. */
+function ReorderableHabit({ habit }) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item
+      value={habit.id}
+      dragListener={false}
+      dragControls={controls}
+      className="list-none relative"
+      whileDrag={{ scale: 1.03, zIndex: 10, boxShadow: '0 18px 30px -12px rgba(0,0,0,0.35)' }}
+      style={{ borderRadius: 16 }}
+    >
+      <HabitCard habit={habit} onDragHandle={(e) => controls.start(e)} />
+    </Reorder.Item>
+  );
+}
 
 export default function Dashboard() {
   const dispatch = useDispatch();
@@ -18,6 +44,17 @@ export default function Dashboard() {
   const todayCount = useSelector(selectTodayCount);
   const consistency = useSelector(selectConsistency);
   const rainy = weatherOf(consistency, habits.length > 0) === 'rainy';
+  const hour = new Date(useNow(true, 60_000)).getHours();
+
+  // Whether the review is open lives in the URL (?review=1), so the command bar
+  // and the back button can open/close it too
+  const [params, setParams] = useSearchParams();
+  const reviewOpen = params.get('review') === '1';
+  const openReview = () => setParams({ review: '1' });
+  const closeReview = () => setParams({}, { replace: true });
+  const today = todayStr();
+  const undoneCount = habits.filter((h) => !h.completedDates.includes(today)).length;
+  const evening = hour >= 18 || hour < 3;
 
   /** Scroll to the first unfinished habit and focus its hold button */
   const focusFirstUndone = () => {
@@ -69,6 +106,21 @@ export default function Dashboard() {
 
       <ForestScene />
 
+      {/* Evening: invite a 10-second swipe review of anything unfinished */}
+      {evening && undoneCount > 0 && (
+        <button
+          onClick={openReview}
+          className="anim-fade-up w-full rounded-2xl p-4 flex items-center gap-3 text-left text-white bg-gradient-to-r from-indigo-900 to-indigo-700 shadow-lg shadow-indigo-900/20 hover:-translate-y-0.5 transition-transform"
+        >
+          <span className="text-2xl">🌙</span>
+          <span className="flex-1">
+            <span className="block font-semibold">Review your day</span>
+            <span className="block text-sm text-indigo-200">{undoneCount} {undoneCount === 1 ? 'habit' : 'habits'} left · swipe through in 10 seconds</span>
+          </span>
+          <span className="text-indigo-200">→</span>
+        </button>
+      )}
+
       {/* Gentle nudge when it's been raining — encouraging, never guilt-tripping */}
       {rainy && (
         <div className="anim-fade-up rounded-2xl p-4 bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/40 border border-sky-100 dark:border-sky-900 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -91,11 +143,19 @@ export default function Dashboard() {
           <div className="flex items-end justify-between mb-3">
             <div>
               <p className="text-violet-200 text-sm font-medium">Today's Progress</p>
-              <p className="text-4xl font-bold mt-0.5">{completionPct}%</p>
+              <p className="text-4xl font-bold mt-0.5"><Odometer value={completionPct} />%</p>
             </div>
-            <p className="text-violet-200 text-sm">
-              {todayCount} / {habits.length} done
-            </p>
+            <div className="flex items-end gap-2 text-right">
+              <p className="text-violet-200 text-sm">
+                {todayCount} / {habits.length} done
+                {consistency.dayStreak > 0 && <span className="block text-white font-semibold">{consistency.dayStreak}-day streak</span>}
+              </p>
+              <StreakFlame
+                streak={consistency.dayStreak}
+                best={habits.some((h) => h.completedDates.length > 0) ? 1 : 0}
+                size={34}
+              />
+            </div>
           </div>
           {/* Progress bar */}
           <div className="w-full bg-white/20 rounded-full h-2.5">
@@ -197,13 +257,24 @@ export default function Dashboard() {
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-            Press and hold 👆 to complete · tap a habit to see its calendar
+            Hold 👆 to complete · tap a habit for details · drag ⠿ to reorder
           </p>
-          {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} />
-          ))}
+          <Reorder.Group
+            axis="y"
+            values={habits.map((h) => h.id)}
+            onReorder={(ids) => dispatch(setHabitOrder(ids))}
+            className="space-y-3"
+          >
+            {habits.map((habit) => (
+              <ReorderableHabit key={habit.id} habit={habit} />
+            ))}
+          </Reorder.Group>
         </div>
       )}
+
+      <AnimatePresence>
+        {reviewOpen && <EveningReview habits={habits} onClose={closeReview} />}
+      </AnimatePresence>
     </div>
   );
 }

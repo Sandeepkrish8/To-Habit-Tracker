@@ -70,6 +70,7 @@ function Palette({ onClose }) {
             toast.show({ icon: '✅', message: `Marked "${h.name}" done` });
           },
         })),
+      { id: 'review', icon: '🌙', title: 'Review your day (swipe)', group: 'Habits', run: go('/?review=1') },
       ...PAGES.map((p) => ({ id: p.to, icon: p.icon, title: p.title, group: 'Pages', run: go(p.to) })),
       { id: 'theme', icon: dark ? '☀️' : '🌙', title: dark ? 'Switch to light mode' : 'Switch to dark mode', group: 'Settings', run: () => setDark(!dark) },
     ];

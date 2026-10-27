@@ -5,7 +5,7 @@
 // The timer itself runs in Redux + <FocusEngine>, so this page is only the
 // controls: label, sounds, fullscreen "focus room", strict mode and mini timer.
 
-import { useEffect, useEffectEvent, useRef } from 'react';
+import { Suspense, lazy, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Tree from '../components/Tree';
 import useNow from '../hooks/useNow';
@@ -15,11 +15,17 @@ import { witherTree, selectTrees, selectHealthyCount } from '../features/forest/
 import { SPECIES, SPECIES_IDS, isUnlocked } from '../features/forest/species';
 import {
   MODES, FOCUS_OPTIONS, durationOf, timeLeftAt, selectFocus,
-  setMode, setFocusMinutes, setSpecies, setLabel, setStrict, setSound, setVolume,
+  setMode, setFocusMinutes, setSpecies, setLabel, setStrict, setSound, setVolume, setTree3d,
   start, pause, reset,
 } from '../features/focus/focusSlice';
 import { SOUNDS } from '../services/ambientAudio';
 import { todayStr } from '../utils/date';
+import { hasWebGL, prefersReducedMotion } from '../utils/webgl';
+
+// Code-split: three.js only downloads when the 3D tree is shown
+const GrowingTree3D = lazy(() => import('../components/three/GrowingTree3D'));
+const BLOOM_SECONDS = 5 * 60; // blossoms open in the last 5 minutes
+const WITHER_MS = 2200;      // how long the withering tree stays on screen
 
 // SVG ring constants
 const RING_SIZE = 260;
@@ -40,6 +46,7 @@ export default function Pomodoro() {
 
   const roomRef = useRef(null);
   const fullscreen = useFullscreenElement()?.id === 'focus-room';
+  const [withering, setWithering] = useState(null); // snapshot of a tree you just gave up on
 
   const { mode, focusMinutes, species, label, endAt, strict, sound, volume } = timer;
   const running = endAt !== null;
@@ -51,6 +58,8 @@ export default function Pomodoro() {
   const strokeDash = CIRCUMFERENCE * progress;
   // A focus session is "in progress" from the moment it starts until it ends or is reset
   const inProgress = mode === 'work' && (running || timeLeft < duration);
+  const webgl = hasWebGL();
+  const show3d = webgl && ((mode === 'work' && timer.tree3d) || withering !== null);
 
   const today = todayStr();
   const todayTrees = trees.filter((t) => t.date === today);
@@ -66,7 +75,10 @@ export default function Pomodoro() {
     const ok = window.confirm('Give up this focus session? Your growing tree will wither 🥀');
     if (ok) {
       const minutesSpent = Math.floor((duration - timeLeft) / 60);
-      dispatch(witherTree({ species, minutes: minutesSpent, label }));
+      dispatch(witherTree({ species, minutes: minutesSpent, label, seed: timer.seed }));
+      // Keep showing this tree for a moment so you see it wither
+      setWithering({ seed: timer.seed, growth: 1 - progress, species });
+      setTimeout(() => setWithering(null), WITHER_MS);
     }
     return ok;
   };
@@ -116,6 +128,18 @@ export default function Pomodoro() {
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
+
+  // A JSX value (not a component defined in render, which would remount every render)
+  const timeReadout = (
+    <>
+      <span className={`text-4xl font-bold tabular-nums tracking-tight ${fullscreen ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+        {pad(minutes)}:{pad(seconds)}
+      </span>
+      <span className={`text-xs mt-0.5 font-medium ${fullscreen ? 'text-emerald-300' : 'text-gray-500 dark:text-gray-400'}`}>
+        {withering ? 'Your tree withered 🥀' : mode === 'work' ? `of ${focusMinutes}:00 · ${SPECIES[species].name}` : modeLabel}
+      </span>
+    </>
+  );
 
   const chip = (active) =>
     `inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200
@@ -204,21 +228,36 @@ export default function Pomodoro() {
               />
             </svg>
 
-            {/* Tree + time display inside ring */}
+            {/* Inside the ring: the 3D tree, or the 2D tree / break emoji with the time */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              {mode === 'work' ? (
-                <Tree species={species} growth={1 - progress} size={96} sway={running} />
+              {show3d ? (
+                <div className="w-[226px] h-[226px] rounded-full overflow-hidden bg-[radial-gradient(circle_at_50%_40%,#065f46,#022c22_75%)]">
+                  <Suspense fallback={<div className="h-full grid place-items-center"><Tree species={species} growth={1 - progress} size={96} /></div>}>
+                    <GrowingTree3D
+                      seed={withering?.seed ?? timer.seed}
+                      growth={withering?.growth ?? 1 - progress}
+                      species={withering?.species ?? species}
+                      bloom={!withering && inProgress && timeLeft <= BLOOM_SECONDS}
+                      withered={withering !== null}
+                      running={running}
+                      reducedMotion={prefersReducedMotion()}
+                    />
+                  </Suspense>
+                </div>
               ) : (
-                <span className="text-5xl mb-2">{emoji}</span>
+                <>
+                  {mode === 'work' ? (
+                    <Tree species={species} growth={1 - progress} size={96} sway={running} />
+                  ) : (
+                    <span className="text-5xl mb-2">{emoji}</span>
+                  )}
+                  {timeReadout}
+                </>
               )}
-              <span className={`text-4xl font-bold tabular-nums tracking-tight ${fullscreen ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                {pad(minutes)}:{pad(seconds)}
-              </span>
-              <span className={`text-xs mt-0.5 font-medium ${fullscreen ? 'text-emerald-300' : 'text-gray-500 dark:text-gray-400'}`}>
-                {mode === 'work' ? `of ${focusMinutes}:00 · ${SPECIES[species].name}` : modeLabel}
-              </span>
             </div>
           </div>
+          {/* With the 3D tree filling the ring, the time sits just below it */}
+          {show3d && <div className="mt-3 flex flex-col items-center">{timeReadout}</div>}
 
           {/* Controls */}
           <div className="flex gap-3 mt-6">
@@ -290,6 +329,16 @@ export default function Pomodoro() {
 
         {/* Focus tools */}
         <div className="flex flex-wrap justify-center gap-2">
+          {webgl && mode === 'work' && (
+            <button
+              onClick={() => dispatch(setTree3d(!timer.tree3d))}
+              className={chip(timer.tree3d)}
+              aria-pressed={timer.tree3d}
+              title="Grow a unique 3D tree while you focus"
+            >
+              🌳 3D tree
+            </button>
+          )}
           {pipSupported && (
             <button onClick={pipOpen ? closeMiniTimer : openMiniTimer} className={chip(pipOpen)}>
               ⧉ {pipOpen ? 'Close mini timer' : 'Mini timer'}
