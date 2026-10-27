@@ -145,6 +145,16 @@ const habitsSlice = createSlice({
       state.habits.splice(toIndex, 0, moved);
     },
 
+    /**
+     * setHabitOrder — drag-to-reorder. Payload: habit ids in their new order
+     */
+    setHabitOrder(state, action) {
+      const byId = new Map(state.habits.map((h) => [h.id, h]));
+      const ordered = action.payload.map((id) => byId.get(id)).filter(Boolean);
+      // Keep any habit the payload didn't mention (e.g. added in another tab)
+      state.habits = [...ordered, ...state.habits.filter((h) => !action.payload.includes(h.id))];
+    },
+
     /** applyFreeze — protect every streak on a missed day. Payload: "YYYY-MM-DD" */
     applyFreeze(state, action) {
       if (!state.frozenDates.includes(action.payload)) state.frozenDates.push(action.payload);
@@ -164,6 +174,7 @@ export const {
   setHabitDone,
   editHabit,
   reorderHabits,
+  setHabitOrder,
   applyFreeze,
   removeFreeze,
 } = habitsSlice.actions;

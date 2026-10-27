@@ -10,15 +10,16 @@ import { loadJSON } from '../../utils/storage';
 /**
  * Builds a tree record. Runs in `prepare` so the reducer itself stays pure
  * (no uuid or Date calls inside the reducer).
- * Payload: { species: string, minutes: number, at?: number (timestamp), label?: string }
+ * Payload: { species: string, minutes: number, at?: number (timestamp), label?: string, seed?: number }
  */
-const prepareTree = (withered) => ({ species, minutes, at = Date.now(), label = '' }) => ({
+const prepareTree = (withered) => ({ species, minutes, at = Date.now(), label = '', seed = 1 }) => ({
   payload: {
     id:        uuidv4(),
     species,
     minutes,
     withered,
     label,     // what you were focusing on
+    seed,      // shape of its 3D tree
     date:      toDateStr(new Date(at)), // local "YYYY-MM-DD" the session ended on
     plantedAt: new Date(at).toISOString(),
   },

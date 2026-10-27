@@ -2,13 +2,23 @@
 // Your focus forest — every tree is a completed focus session.
 // Browse it by day, week, month, year, or all time, plus a year-long heatmap.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Tree from '../components/Tree';
+import useNow from '../hooks/useNow';
 import { selectTrees, selectHealthyCount } from '../features/forest/forestSlice';
 import { SPECIES, nextUnlock } from '../features/forest/species';
-import { toDateStr, todayStr, daysAgoStr } from '../utils/date';
+import { selectConsistency, selectTotalHabits } from '../features/habits/habitsSlice';
+import { weatherOf } from '../features/habits/weather';
+import { phaseOf, SKIES, RAIN_SKIES } from '../features/habits/sky';
+import { hasWebGL, prefersReducedMotion } from '../utils/webgl';
+import { loadJSON, saveJSON } from '../utils/storage';
+import { toDateStr, todayStr, daysAgoStr, parseDateStr } from '../utils/date';
+
+// three.js is big, so the 3D island is code-split: it only downloads when you open 3D
+const ForestIsland = lazy(() => import('../components/three/ForestIsland'));
+const MAX_3D_TREES = 150;
 
 const RANGES = [
   { id: 'day',   label: 'Today' },
@@ -117,6 +127,18 @@ export default function Forest() {
   const trees = useSelector(selectTrees);
   const healthyCount = useSelector(selectHealthyCount);
   const [range, setRange] = useState('week');
+  const [view, setView] = useState(() => (hasWebGL() ? loadJSON('habitTracker_forestView', '2d') : '2d'));
+  const [selected, setSelected] = useState(null); // tree tapped in 3D
+  const consistency = useSelector(selectConsistency);
+  const habitCount = useSelector(selectTotalHabits);
+  const phase = phaseOf(new Date(useNow(true, 60_000)).getHours());
+  const weather = weatherOf(consistency, habitCount > 0);
+
+  const chooseView = (v) => {
+    setView(v);
+    setSelected(null);
+    saveJSON('habitTracker_forestView', v); // remember your choice on this device
+  };
 
   const visible = useMemo(() => trees.filter(inRange(range)), [trees, range]);
 
@@ -155,21 +177,40 @@ export default function Forest() {
           </p>
         </div>
 
-        {/* Range tabs */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 self-start sm:self-auto">
-          {RANGES.map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => setRange(id)}
-              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200
-                ${range === id
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex gap-2 flex-wrap self-start sm:self-auto">
+          {/* 2D / 3D toggle (3D only where WebGL works) */}
+          {hasWebGL() && (
+            <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1">
+              {[['2d', '🌳 2D'], ['3d', '🏝️ 3D']].map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => chooseView(id)}
+                  aria-pressed={view === id}
+                  className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200
+                    ${view === id ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Range tabs */}
+          <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1">
+            {RANGES.map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setRange(id)}
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${range === id
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -181,41 +222,78 @@ export default function Forest() {
         <StatCard icon="🔥" label="Focus streak"  value={`${focusStreak}d`}           delay={180} />
       </div>
 
-      {/* The forest itself — key={range} replays the planting animation on tab change */}
-      <div
-        key={range}
-        className="relative rounded-3xl overflow-hidden border border-emerald-100 dark:border-emerald-900/50 bg-gradient-to-b from-sky-100 via-emerald-50 to-emerald-100 dark:from-slate-900 dark:via-emerald-950/60 dark:to-emerald-950"
-      >
-        {visible.length === 0 ? (
-          <div className="py-16 px-6 text-center">
-            <Tree species="oak" growth={0} size={72} className="mx-auto" />
-            <p className="mt-3 text-gray-600 dark:text-gray-300 font-medium">No trees here yet</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Finish a focus session to plant one.</p>
-            <Link
-              to="/pomodoro"
-              className="inline-block mt-5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
-            >
-              🌱 Start focusing
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-end justify-center gap-x-1 gap-y-3 px-4 pt-8 pb-6 min-h-48">
-            {visible.map((t, i) => (
-              <Tree
-                key={t.id}
-                species={t.species}
-                withered={t.withered}
-                size={treeSize(t.minutes)}
-                className="anim-pop"
-                // Stagger the pop-in, capped so big forests don't take forever
-                style={{ animationDelay: `${Math.min(i, 40) * 35}ms` }}
-              />
-            ))}
-          </div>
-        )}
-        {/* Grass strip */}
-        <div className="h-3 bg-emerald-300/70 dark:bg-emerald-800/70" />
-      </div>
+      {/* 3D island: drag to orbit, tap a tree to fly to it */}
+      {view === '3d' && visible.length > 0 ? (
+        <div className={`relative h-[420px] sm:h-[520px] rounded-3xl overflow-hidden border border-emerald-100 dark:border-emerald-900/50 bg-gradient-to-b ${weather === 'rainy' ? RAIN_SKIES[phase] : SKIES[phase]}`}>
+          <Suspense fallback={<div className="h-full grid place-items-center text-sm text-gray-600 dark:text-gray-300">🌱 Growing your island…</div>}>
+            <ForestIsland
+              key={range}
+              trees={visible.slice(-MAX_3D_TREES)}
+              phase={phase}
+              weather={weather}
+              selectedId={selected?.id ?? null}
+              onSelect={setSelected}
+              reducedMotion={prefersReducedMotion()}
+            />
+          </Suspense>
+          <p className="absolute left-4 top-3 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/80 dark:bg-slate-900/70 text-gray-700 dark:text-gray-200 pointer-events-none">
+            Drag to orbit · scroll to zoom · tap a tree
+            {visible.length > MAX_3D_TREES && ` · newest ${MAX_3D_TREES}`}
+          </p>
+          {selected && (
+            <div className="anim-fade-up absolute left-4 bottom-4 right-4 sm:right-auto sm:w-72 p-4 rounded-2xl bg-white/95 dark:bg-gray-900/95 shadow-xl">
+              <div className="flex items-start gap-3">
+                <Tree species={selected.species} withered={selected.withered} size={40} sway={false} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 dark:text-white">{selected.withered ? 'Withered tree' : SPECIES[selected.species].name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {selected.minutes} min · {parseDateStr(selected.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {' · '}{new Date(selected.plantedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                  {selected.label && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1 truncate">📖 {selected.label}</p>}
+                </div>
+                <button onClick={() => setSelected(null)} aria-label="Close" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">✕</button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* The forest itself — key={range} replays the planting animation on tab change */
+        <div
+          key={range}
+          className="relative rounded-3xl overflow-hidden border border-emerald-100 dark:border-emerald-900/50 bg-gradient-to-b from-sky-100 via-emerald-50 to-emerald-100 dark:from-slate-900 dark:via-emerald-950/60 dark:to-emerald-950"
+        >
+          {visible.length === 0 ? (
+            <div className="py-16 px-6 text-center">
+              <Tree species="oak" growth={0} size={72} className="mx-auto" />
+              <p className="mt-3 text-gray-600 dark:text-gray-300 font-medium">No trees here yet</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Finish a focus session to plant one.</p>
+              <Link
+                to="/pomodoro"
+                className="inline-block mt-5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
+              >
+                🌱 Start focusing
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-end justify-center gap-x-1 gap-y-3 px-4 pt-8 pb-6 min-h-48">
+              {visible.map((t, i) => (
+                <Tree
+                  key={t.id}
+                  species={t.species}
+                  withered={t.withered}
+                  size={treeSize(t.minutes)}
+                  className="anim-pop"
+                  // Stagger the pop-in, capped so big forests don't take forever
+                  style={{ animationDelay: `${Math.min(i, 40) * 35}ms` }}
+                />
+              ))}
+            </div>
+          )}
+          {/* Grass strip */}
+          <div className="h-3 bg-emerald-300/70 dark:bg-emerald-800/70" />
+        </div>
+      )}
 
       {stats.withered > 0 && (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center">

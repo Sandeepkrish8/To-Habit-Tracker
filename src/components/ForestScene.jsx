@@ -11,28 +11,14 @@ import Tree from './Tree';
 import useNow from '../hooks/useNow';
 import { selectConsistency, selectTotalHabits } from '../features/habits/habitsSlice';
 import { weatherOf } from '../features/habits/weather';
+import { phaseOf, SKIES, RAIN_SKIES } from '../features/habits/sky';
 import { selectTrees } from '../features/forest/forestSlice';
 import { SPECIES } from '../features/forest/species';
 import { parseDateStr } from '../utils/date';
 
 const MAX_TREES = 8;
 
-const SKIES = {
-  dawn:   'from-indigo-300 via-rose-200 to-amber-100',
-  day:    'from-sky-400 via-sky-200 to-sky-100',
-  sunset: 'from-indigo-500 via-orange-300 to-amber-200',
-  night:  'from-slate-950 via-indigo-950 to-slate-800',
-};
-const RAIN_SKIES = {
-  dawn: 'from-slate-500 via-slate-400 to-slate-300',
-  day: 'from-slate-600 via-slate-500 to-slate-400',
-  sunset: 'from-slate-600 via-slate-500 to-stone-400',
-  night: 'from-slate-950 via-slate-900 to-slate-800',
-};
 const HILLS = { dawn: '#86efac', day: '#86efac', sunset: '#65a30d', night: '#14532d' };
-
-const phaseOf = (hour) =>
-  hour >= 5 && hour < 7 ? 'dawn' : hour >= 7 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'sunset' : 'night';
 
 // Fixed star positions [left%, top%, delay s]
 const STARS = [[8, 12, 0], [22, 30, 0.8], [35, 8, 1.6], [48, 22, 0.4], [62, 10, 1.2], [74, 28, 2], [86, 14, 0.6], [92, 34, 1.4], [15, 44, 1], [55, 38, 1.8]];

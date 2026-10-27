@@ -43,7 +43,7 @@ export default function FocusEngine({ children }) {
       dispatch(completeSession('work'));
       return;
     }
-    const tree = { species: timer.species, minutes: timer.focusMinutes, at: timer.endAt, label: timer.label };
+    const tree = { species: timer.species, minutes: timer.focusMinutes, at: timer.endAt, label: timer.label, seed: timer.seed };
     dispatch(plantTree(tree));
     setCelebration(tree);
     // Every 4th tree of the day earns a long break
